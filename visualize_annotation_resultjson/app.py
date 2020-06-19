@@ -1,8 +1,7 @@
 import cv2
-import json
+import json, urllib
 import numpy as np
 import streamlit as st
-import json
 from abeja.datalake import Client as DatalakeClient
 from abeja.datalake import APIClient
 
