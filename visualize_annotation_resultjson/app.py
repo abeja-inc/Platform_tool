@@ -41,7 +41,7 @@ def draw_image(image, header="", description=""):
 
 @st.cache(show_spinner=False)
 def get_file_content_as_string(path):
-    url = '****' + path
+    url = 'https://raw.githubusercontent.com/abeja-inc/Platform_tool/master/visualize_annotation_resultjson/' + path
     response = urllib.request.urlopen(url)
     return response.read().decode("utf-8")
 
@@ -159,7 +159,8 @@ def run_the_app():
 ###### Main ######
 
 # Render the readme as markdown using st.markdown.
-readme_text = st.markdown(get_file_local_content_as_string("instructions.md"))
+#readme_text = st.markdown(get_file_local_content_as_string("instructions.md"))
+readme_text = st.markdown(get_file_content_as_string("instructions.md"))
 
 # Once we have the dependencies, add a selector for the app mode on the sidebar.
 st.sidebar.title("What to do")
@@ -169,7 +170,7 @@ if app_mode == "Show instructions":
     st.sidebar.success('To continue select "Run the app".')
 elif app_mode == "Show the source code":
     readme_text.empty()
-    st.code(get_file_local_content_as_string("app.py"))
+    st.code(get_file_content_as_string("app.py"))
 elif app_mode == "Run the app":
     readme_text.empty()
     organization_id = st.sidebar.text_input('organization_id:')
