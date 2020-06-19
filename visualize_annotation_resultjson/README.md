@@ -10,6 +10,6 @@ pip install streamlit
 streamlit run https://raw.githubusercontent.com/abeja-inc/Platform_tool/master/visualize_annotation_resultjson/app.py
 ```
 
-- Write Credential info
+- Write credential info
 - Upload Json file (Download from your ABEJA Platform Annotation Project)
-- visualizing!!
+- Visualizing!!
