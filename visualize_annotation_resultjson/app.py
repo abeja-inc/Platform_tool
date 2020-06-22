@@ -140,6 +140,45 @@ def run_segment(json_load):
             sub_text = f"[notes: {notes}], [review_information: {review_information}]"
             draw_image(blended_image, main_text, sub_text)
 
+def run_classify(json_load):
+    max_image_number = len(json_load)
+    select_min, select_max = frame_selector_ui(max_image_number)
+
+    for x in json_load[select_min:select_max]:
+        task_id = x["task_id"]
+        notes = x["notes"]
+        review_information = x["review_information"]
+
+        # Get label
+        label_list = []
+        for y in  x["information"]:
+          label_list.append(y["label"])
+
+        task = x["task"]
+        metadata = task["metadata"][0]
+        file_name = metadata["information"]["filename"]
+        channel_id = metadata["channel_id"]
+
+        # Get Platform Channel_id
+        try:
+            channel = datalake_client.get_channel(channel_id)
+        except:
+            st.error('👈 **Please set your credential**')
+            break
+        else:
+            file_id = metadata["source"]
+
+            #writing image file
+            datalake_file = channel.get_file(file_id=file_id)
+            raw_image = datalake_file.get_content()
+            img = np.asarray(bytearray(raw_image), dtype="uint8")
+            img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+
+            label_text = " ".join(label_list)
+            main_text = f"[Task_id: {task_id}], [Filename: {file_name}], [label: {label_text}]"
+            sub_text = f"[notes: {notes}], [review_information: {review_information}]"
+            draw_image(img, main_text, sub_text)
+
 def run_the_app():
     uploaded_file = st.file_uploader("Please chose Json file", type=['json'])
     if uploaded_file is not None:
@@ -154,6 +193,8 @@ def run_the_app():
             run_objdct(json_load)
         elif annotation_task == "segmentation_selectable":
             run_segment(json_load)
+        elif annotation_task == "classify":
+            run_classify(json_load)
 
 ###### Main ######
 
@@ -191,6 +232,7 @@ elif app_mode == "Run the app":
         except:
             st.sidebar.error('Incorrect authentication information. Please check.')
         else:
+            st.success('Success authentication!!')
             run_the_app()
     else:
         datalake_client = DatalakeClient(organization_id=organization_id, credential=credential)
