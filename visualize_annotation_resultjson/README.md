@@ -5,6 +5,12 @@ pip install abeja-sdk
 pip install streamlit
 ```
 
+#### Available Annotation Tasks
+- Object Detection
+- Image Segmentation
+- Image Classification
+- Text Classification
+
 #### Start local server
 ```
 streamlit run https://raw.githubusercontent.com/abeja-inc/Platform_tool/master/visualize_annotation_resultjson/app.py
