@@ -9,7 +9,7 @@ def frame_selector_ui(max_number):
     st.sidebar.markdown("# Number of display")
 
     # The user can select a range for how many of the selected objecgt should be present.
-    select_min, select_max = st.sidebar.slider("How many pic to display (select a range)?", 0, max_number, [0, 10])
+    select_min, select_max = st.sidebar.slider("How many obj to display (select a range)?", 0, max_number, [0, 1])
 
     return select_min, select_max
 
@@ -27,16 +27,21 @@ def draw_image_with_boxes(image, boxes, header="", description=""):
         image_with_boxes[int(x[1]):int(x[3]),int(x[0]):int(x[2]),:] += LABEL_COLORS["car"]
         image_with_boxes[int(x[1]):int(x[3]),int(x[0]):int(x[2]),:] /= 2
 
-    # Draw the header and image.
-    st.subheader(header)
-    st.markdown(description)
-    st.image(image_with_boxes.astype(np.uint8), use_column_width=True)
+    annotation = ""
+    draw_image(image_with_boxes, header, description, annotation)
 
-def draw_image(image, header="", description=""):
+def draw_image(image, header="", description="", annotation=""):
     # Draw the header and image.
     st.subheader(header)
+    st.markdown(annotation)
     st.markdown(description)
     st.image(image.astype(np.uint8), use_column_width=True)
+
+def draw_text(text, header="", description="", annotation=""):
+    st.subheader(header)
+    st.markdown(annotation)
+    st.markdown(description)
+    st.code(text, language='text')
 
 @st.cache(show_spinner=False)
 def get_file_content_as_string(path):
@@ -82,8 +87,8 @@ def run_objdct(json_load):
             for y in information:
                 box = y["rect"]
                 box_list.append(box)
-            main_text = f"[Task_id: {task_id}], [Filename: {file_name}]"
-            sub_text = f"[notes: {notes}], [review_information: {review_information}]"
+            main_text = f"Task_id: {task_id}, Filename: {file_name}"
+            sub_text = f"notes: {notes}, review_information: {review_information}"
             draw_image_with_boxes(image,box_list, main_text, sub_text)
 
 def run_segment(json_load):
@@ -136,11 +141,11 @@ def run_segment(json_load):
 
             blended_image = cv2.addWeighted(img_in, alpha, img_out, 1 - alpha, 0)
 
-            main_text = f"[Task_id: {task_id}], [Filename: {file_name}]"
-            sub_text = f"[notes: {notes}], [review_information: {review_information}]"
+            main_text = f"Task_id: {task_id}, Filename: {file_name}"
+            sub_text = f"notes: {notes}, review_information: {review_information}"
             draw_image(blended_image, main_text, sub_text)
 
-def run_classify(json_load):
+def run_image_classify(json_load):
     max_image_number = len(json_load)
     select_min, select_max = frame_selector_ui(max_image_number)
 
@@ -175,9 +180,47 @@ def run_classify(json_load):
             img = cv2.imdecode(img, cv2.IMREAD_COLOR)
 
             label_text = " ".join(label_list)
-            main_text = f"[Task_id: {task_id}], [Filename: {file_name}], [label: {label_text}]"
-            sub_text = f"[notes: {notes}], [review_information: {review_information}]"
-            draw_image(img, main_text, sub_text)
+            main_text = f"Task_id: {task_id}, Filename: {file_name}"
+            annotation  = f"label: {label_text}"
+            sub_text = f"notes: {notes}, review_information: {review_information}"
+            draw_image(img, main_text, sub_text, annotation)
+
+def run_text_classify(json_load):
+     max_text_number = len(json_load)
+     select_min, select_max = frame_selector_ui(max_text_number)
+
+     for x in json_load[select_min:select_max]:
+         task_id = x["task_id"]
+         notes = x["notes"]
+         review_information = x["review_information"]
+
+         # Get label
+         label_length = ""
+         for k,v in  x["information"].items():
+             label_length = label_length + str(k) + ":" + str(v) + ", "
+
+         task = x["task"]
+         metadata = task["metadata"][0]
+         file_name = metadata["information"]["filename"]
+         channel_id = metadata["channel_id"]
+
+         # Get Platform Channel_id
+         try:
+             channel = datalake_client.get_channel(channel_id)
+         except:
+             st.error('👈 **Please set your credential**')
+             break
+         else:
+             file_id = metadata["source"]
+
+             #writing text file
+             datalake_file = channel.get_file(file_id=file_id)
+             raw_text = datalake_file.get_content().decode()
+
+             main_text = f"Task_id: {task_id}, Filename: {file_name}"
+             sub_text = f"notes: {notes}, review_information: {review_information}"
+             draw_text(raw_text, main_text, sub_text, label_length)
+
 
 def run_the_app():
     uploaded_file = st.file_uploader("Please chose Json file", type=['json'])
@@ -194,7 +237,11 @@ def run_the_app():
         elif annotation_task == "segmentation_selectable":
             run_segment(json_load)
         elif annotation_task == "classify":
-            run_classify(json_load)
+            run_image_classify(json_load)
+        elif annotation_task == "text":
+            run_text_classify(json_load)
+        else:
+            st.error("That task is unsupported yet")
 
 ###### Main ######
 
